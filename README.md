@@ -1,56 +1,120 @@
-﻿# Codex Home
+﻿# AgentFlow
 
-This directory is the preferred launch point for future Codex sessions.
+AgentFlow is a local control plane for long-running AI coding workflows.
 
-## Purpose
+It is built for people who have already outgrown one-off chat sessions and want a persistent way to manage tasks, runtime state, sessions, handoffs, and memory in one place.
 
-- Keep the reusable workflow docs in one place.
-- Give new Codex sessions a stable `AGENTS.md` entrypoint.
-- Store copies of the custom skill docs for reference.
-- Act as the control plane for tasks, knowledge, accounts, and machines.
-- Separate launch-time guidance from any single project repo.
+## Why
 
-## Structure
+Most agent workflows break down in the same places:
 
-- `AGENTS.md`: launch-time routing rules
-- `guides/REMOTE_EXECUTION.md`: remote Ubuntu/Tailscale/SSH workflow
-- `docs/RFVNEXT.md`: Repro Factory vNext contract and trigger guide
-- `docs/SKILLS_OVERVIEW.md`: what the custom skills are for
-- `docs/workflow/`: control-plane architecture, schema, state machine, and source mapping
-- `tasks/`: task source data and templates
-- `knowledge/`: approved knowledge entries and templates
-- `machines/`: named remote machine records
-- `accounts/`: account metadata records
-- `indexes/`: derived JSON read models for GUI and dashboards
-- `gui/`: zero-dependency control-plane dashboard
-- `scripts/build_indexes.py`: rebuilds the derived indexes
-- `skills/`: mirrored copies of the custom skill docs
+- long-running tasks lose context
+- multi-task execution becomes hard to track
+- runtime state, decisions, and outputs drift apart
+- useful knowledge stays trapped inside past sessions
 
-## Usage
+AgentFlow is an attempt to turn that mess into a usable local system:
 
-You can launch Codex from this directory and still work on other directories.
-That is normal.
+- tasks are first-class objects
+- sessions and runtime state are tracked explicitly
+- handoff and memory are durable
+- a GUI sits on top of the control plane instead of replacing it
 
-The launch directory controls the default guidance Codex reads first.
-The actual task directory can still be anywhere else, including remote Linux paths outside this repo.
+## What It Does
 
-## Indexes
+Current repo capabilities:
 
-Rebuild GUI-facing indexes with:
+- Track tasks, phases, decisions, experiments, and findings as Markdown source records
+- Maintain task memory, session memory, and runtime metadata
+- Generate JSON indexes for GUI and other read-side consumers
+- Run a local control-plane server for task inspection and mutation
+- Provide a GUI for task switching, runtime status, handoff, and session flow
+- Keep reusable workflow docs and skill references close to the execution layer
+
+## Who It Is For
+
+AgentFlow is currently best suited to:
+
+- AI coding power users running long-lived work across multiple tasks
+- solo builders who want a local orchestration layer, not just a chat UI
+- developers exploring persistent agent workflows, runtime management, and structured handoff
+
+It is not yet a polished end-user product, and it is not a generic team project manager.
+
+## Current Status
+
+This project is still early.
+
+Right now the schema and control-plane model are more mature than the frontend. The runtime path toward real Codex-backed execution exists, but the UI is still being refactored and simplified.
+
+You should think of the repo today as:
+
+- a working local orchestration prototype
+- a design space for persistent agent workflows
+- a base for future cleanup, packaging, and community-facing polish
+
+## Quickstart
+
+Rebuild the derived indexes:
 
 ```powershell
 py -3 .\scripts\build_indexes.py
 ```
 
-## GUI
-
-Serve the repository root and open the dashboard:
+Start the control-plane server:
 
 ```powershell
 py -3 .\scripts\control_plane_server.py
 ```
 
-Then visit `http://localhost:4173/gui/`.
+Then open:
 
-The `gui/` directory now also contains a `Vite + TypeScript` frontend scaffold for the next GUI migration.
-Legacy files remain as the current fallback until `gui/dist/` is built and served.
+```text
+http://localhost:4173/gui/
+```
+
+## Repo Map
+
+The most important directories are:
+
+- `docs/workflow/`: control-plane architecture, schema, runtime, and mapping docs
+- `tasks/`: task templates and task-local source structures
+- `knowledge/`: approved knowledge formats and templates
+- `skills/`: mirrored skill docs and bundled system skills
+- `skills-registry/`: metadata for skill sources and local skill records
+- `scripts/`: control-plane server, index builder, runtime helpers
+- `gui/`: current GUI plus the next frontend scaffold
+- `guides/`: operational guides such as remote execution patterns
+
+## Design Principles
+
+- Markdown is the source of truth
+- JSON indexes are derived read models
+- runtime state should be inspectable, not hidden in chat history
+- handoff and memory should survive across sessions
+- the GUI should reflect the control plane, not invent a separate model
+
+## What This Repo Does Not Contain
+
+The public repository intentionally excludes:
+
+- local auth files
+- personal runtime databases and logs
+- private machine records
+- task-instance data from local experiments
+- private session traces
+
+The repo is meant to publish the framework, not the private operating history behind it.
+
+## Roadmap Direction
+
+Near-term work is concentrated around:
+
+- making the GUI simpler and more trustworthy
+- tightening the task/runtime/session model
+- improving real runtime attachment and session visibility
+- making the public repo easier for others to clone, understand, and adapt
+
+## License
+
+See [LICENSE](./LICENSE).
