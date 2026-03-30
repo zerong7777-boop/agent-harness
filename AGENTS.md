@@ -1,6 +1,6 @@
-﻿# AgentFlow Workspace Guide
+﻿# Agent Harness Workspace Guide
 
-This repository is the main workspace for AgentFlow.
+This repository is the main workspace for Agent Harness.
 
 It contains the control-plane docs, task schema, GUI, and supporting guides used to run long-lived AI coding workflows locally.
 

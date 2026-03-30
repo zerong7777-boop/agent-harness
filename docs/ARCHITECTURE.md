@@ -1,12 +1,12 @@
-# AgentFlow Architecture
+﻿# Agent Harness Architecture
 
-AgentFlow is a local control plane for long-running AI coding workflows.
+Agent Harness is a local harness for long-running AI coding workflows.
 
 It is designed for users who want more than a chat window: they want tasks, runtime state, sessions, handoffs, and memory to stay visible and durable while work continues over time.
 
 ## System Shape
 
-At a high level, AgentFlow has three layers:
+At a high level, Agent Harness has three layers:
 
 1. Source records
    Human-readable Markdown files are the source of truth.
@@ -61,7 +61,7 @@ A task may have multiple sessions over time, but only one is the current primary
 
 ### Memory
 
-AgentFlow separates long-term task memory from session-local memory.
+Agent Harness separates long-term task memory from session-local memory.
 
 - `Task Memory` is the durable task-level summary
 - `Session Memory` captures per-session context, events, and handoff material
@@ -96,14 +96,14 @@ The GUI does not own the model. The Markdown records do.
 
 ## Execution Model
 
-AgentFlow is moving from a pure control-plane stub toward real task-scoped runtime attachment.
+Agent Harness is moving from a pure control-plane stub toward real task-scoped runtime attachment.
 
 Today the execution path has two important ideas:
 
 - a task always has an explicit runtime state
 - a real attached runtime should be visible as such, not silently faked
 
-The long-term direction is task-scoped, persistent execution. Instead of treating every interaction as a fresh chat, AgentFlow treats a task as something that can own runtime state, a primary session, and handoff material over time.
+The long-term direction is task-scoped, persistent execution. Instead of treating every interaction as a fresh chat, Agent Harness treats a task as something that can own runtime state, a primary session, and handoff material over time.
 
 ## Repository Map
 

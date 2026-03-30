@@ -1,6 +1,6 @@
 ﻿# GUI
 
-This directory contains the current AgentFlow interface layer.
+This directory contains the current Agent Harness interface layer.
 
 The GUI reads derived indexes from the control plane and talks to the Python server for task actions and runtime operations.
 

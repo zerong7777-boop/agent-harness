@@ -1,6 +1,6 @@
-﻿# AgentFlow
+﻿# Agent Harness
 
-AgentFlow is a local control plane for long-running AI coding workflows.
+Agent Harness is a local harness for long-running AI coding workflows.
 
 It is built for people who have already outgrown one-off chat sessions and want a persistent way to manage tasks, runtime state, sessions, handoffs, and memory in one place.
 
@@ -13,7 +13,7 @@ Most agent workflows break down in the same places:
 - runtime state, decisions, and outputs drift apart
 - useful knowledge stays trapped inside past sessions
 
-AgentFlow is an attempt to turn that mess into a usable local system:
+Agent Harness is an attempt to turn that mess into a usable local system:
 
 - tasks are first-class objects
 - sessions and runtime state are tracked explicitly
@@ -33,7 +33,7 @@ Current repo capabilities:
 
 ## Who It Is For
 
-AgentFlow is currently best suited to:
+Agent Harness is currently best suited to:
 
 - AI coding power users running long-lived work across multiple tasks
 - solo builders who want a local orchestration layer, not just a chat UI
