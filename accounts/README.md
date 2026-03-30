@@ -1,6 +1,6 @@
-# Accounts
+﻿# Accounts
 
-`accounts/` stores execution identities.
+`accounts/` stores execution identities used by the control plane.
 
 Use account records for:
 
@@ -9,4 +9,4 @@ Use account records for:
 - default/secondary routing
 - capability notes
 
-Task assignment stays manual-first. The control plane can suggest, but not silently reassign.
+Task assignment stays manual-first. The control plane can suggest routes, but it should not silently reassign work.

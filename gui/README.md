@@ -1,8 +1,8 @@
 ﻿# GUI
 
-This directory contains the current local control-plane GUI.
+This directory contains the current AgentFlow interface layer.
 
-It reads the derived indexes under `indexes/` and talks to the Python control-plane server for task mutations and runtime actions.
+The GUI reads derived indexes from the control plane and talks to the Python server for task actions and runtime operations.
 
 ## Reads
 
@@ -36,4 +36,4 @@ The current GUI is still evolving. Right now it focuses on:
 - reviewing recent replies and session flow
 - performing control-plane actions such as task progression and runtime attachment
 
-It is not yet a finished product UI.
+It should be treated as an early operator console, not a finished product UI.

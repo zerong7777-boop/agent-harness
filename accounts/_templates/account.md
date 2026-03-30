@@ -1,9 +1,9 @@
 +++
 object_kind = "account"
 title = "Example Account"
-account_id = "codex-main"
+account_id = "primary-account"
 provider = "codex"
-quota_notes = "Primary account for long-running tasks"
+quota_notes = "Default account for long-running tasks"
 is_default = true
 capabilities = ["multi-task", "subagent"]
 tags = []

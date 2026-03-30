@@ -1,6 +1,6 @@
-# Knowledge
+﻿# Knowledge
 
-Approved knowledge lives outside task-local folders.
+Approved knowledge lives outside task-local folders so it can be reused across tasks.
 
 ## Layers
 
@@ -15,4 +15,4 @@ Approved knowledge lives outside task-local folders.
 - `atomic-card`: one stable conclusion or one failure pattern
 - `task-summary`: a compact recap anchored to one task
 
-Every entry must backlink to at least one task or source.
+Every entry must backlink to at least one task, experiment, decision, or external source.

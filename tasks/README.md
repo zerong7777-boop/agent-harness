@@ -1,6 +1,8 @@
-# Tasks
+﻿# Tasks
 
-`tasks/` stores source records for long-lived work items.
+`tasks/` stores the source records for long-lived work.
+
+Each task is a first-class object in the control plane.
 
 ## Rules
 

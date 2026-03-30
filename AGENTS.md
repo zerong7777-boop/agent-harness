@@ -1,6 +1,8 @@
-﻿# Codex Launch Home
+﻿# AgentFlow Workspace Guide
 
-This directory is the preferred starting point for new Codex sessions.
+This repository is the main workspace for AgentFlow.
+
+It contains the control-plane docs, task schema, GUI, and supporting guides used to run long-lived AI coding workflows locally.
 
 ## Routing Rules
 
@@ -29,4 +31,4 @@ If the task is about the local control plane, task tracking, knowledge capture, 
 Starting from this directory does not mean the task itself lives here.
 If the user points to another local repo or a remote project root, treat that as the real work target.
 
-This directory is for launch-time guidance, not for forcing all tasks into one workspace.
+This repository is the control plane, not a rule that every implementation must live under `E:\codex-home`.

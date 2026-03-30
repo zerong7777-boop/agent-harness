@@ -1,6 +1,6 @@
-# Machines
+﻿# Machines
 
-`machines/` holds named remote resources.
+`machines/` holds named local or remote execution resources.
 
 Each machine record should capture:
 
