@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Codex 控制面</title>
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./styles-v4.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="left-rail">
+      <div class="brand-card">
+        <p class="eyebrow">Codex Home</p>
+        <h1>控制面</h1>
+        <p class="lede">以任务为中心，把决策、证据和进度放进同一个视图里。</p>
+        <div class="section-actions">
+          <button id="guideToggleButton" class="ghost-button slim-button" type="button">使用指南</button>
+          <button id="refreshButton" class="ghost-button slim-button" type="button">刷新索引</button>
+        </div>
+      </div>
+
+      <section class="rail-section">
+        <div class="section-head">
+          <h2>支持视图</h2>
+        </div>
+        <div id="accountList" class="mini-list"></div>
+        <div id="machineList" class="mini-list top-spaced"></div>
+      </section>
+    </aside>
+
+    <main class="main-stage">
+      <section class="summary-grid">
+        <article class="panel metric-panel">
+          <p class="eyebrow">总览</p>
+          <div class="metric-grid">
+            <div>
+              <span class="metric-label">活跃任务</span>
+              <strong id="activeTaskCount" class="metric-value">0</strong>
+            </div>
+            <div>
+              <span class="metric-label">待决策事项</span>
+              <strong id="pendingDecisionCount" class="metric-value">0</strong>
+            </div>
+            <div>
+              <span class="metric-label">机器</span>
+              <strong id="machineCount" class="metric-value">0</strong>
+            </div>
+            <div>
+              <span class="metric-label">知识条目</span>
+              <strong id="knowledgeCount" class="metric-value">0</strong>
+            </div>
+          </div>
+        </article>
+        <article class="panel metric-panel">
+          <div class="section-head">
+            <h2>待你处理</h2>
+            <span id="decisionBadge" class="badge accent">0</span>
+          </div>
+          <div id="decisionList" class="stack-list"></div>
+        </article>
+      </section>
+
+      <section class="content-grid">
+        <article class="panel">
+          <div class="section-head">
+            <h2>最近关键结论</h2>
+          </div>
+          <div id="findingList" class="stack-list empty-friendly"></div>
+        </article>
+
+        <article class="panel">
+          <div class="section-head">
+            <h2>实验时间线</h2>
+          </div>
+          <div id="timelineList" class="timeline"></div>
+        </article>
+      </section>
+
+      <section class="workspace-grid">
+        <section class="panel task-hub-panel">
+          <div class="section-head">
+            <h2>任务总览</h2>
+            <div class="section-actions">
+              <button id="toggleCreateTaskButton" class="ghost-button slim-button" type="button">新建任务</button>
+              <span id="taskCountBadge" class="badge">0</span>
+            </div>
+          </div>
+          <p class="panel-note">优先从这里切换和比较任务。后续多任务并行时，这里会继续扩展成更高密度的总览区。</p>
+          <div id="createTaskPanel" class="create-task-panel" hidden>
+            <div class="create-task-grid">
+              <label class="field-label">
+                <span>任务标题</span>
+                <input id="createTaskTitle" class="field-input" type="text" placeholder="例如：RFvNext 复现实验" />
+              </label>
+              <label class="field-label">
+                <span>短名</span>
+                <input id="createTaskShortName" class="field-input" type="text" placeholder="可选，默认按标题生成" />
+              </label>
+              <label class="field-label field-span-2">
+                <span>任务摘要</span>
+                <textarea id="createTaskSummary" class="field-input field-textarea compact-textarea" placeholder="一句话说明这个任务想解决什么。"></textarea>
+              </label>
+              <label class="field-label">
+                <span>优先级</span>
+                <select id="createTaskPriority" class="field-input">
+                  <option value="P1">P1</option>
+                  <option value="P2" selected>P2</option>
+                  <option value="P3">P3</option>
+                </select>
+              </label>
+              <label class="field-label">
+                <span>账号</span>
+                <select id="createTaskAccount" class="field-input"></select>
+              </label>
+              <label class="field-label field-span-2">
+                <span>机器</span>
+                <select id="createTaskMachine" class="field-input"></select>
+              </label>
+            </div>
+            <div class="section-actions">
+              <button id="submitCreateTaskButton" class="ghost-button slim-button" type="button">创建任务</button>
+            </div>
+          </div>
+          <div id="taskList" class="task-list task-list-dense"></div>
+        </section>
+
+        <aside class="detail-sidebar">
+          <section class="hero-panel panel hero-panel-compact">
+            <div class="hero-copy">
+              <p class="eyebrow">任务焦点</p>
+              <h2 id="taskTitle">尚未选择任务</h2>
+              <p id="taskSummary" class="hero-summary">从任务总览中选择一个任务，查看它当前的状态、决策与实验记录。</p>
+              <div class="hero-actions">
+                <p id="taskNextStageHint" class="hero-summary hero-summary-compact">选择一个任务后，这里会显示建议的下一步。</p>
+                <button id="advanceStageButton" class="ghost-button slim-button" type="button">推进到下一阶段</button>
+              </div>
+            </div>
+            <div class="hero-stats">
+              <div class="stat-chip">
+                <span class="stat-label">主阶段</span>
+                <strong id="taskStage">-</strong>
+              </div>
+              <div class="stat-chip">
+                <span class="stat-label">当前 phase</span>
+                <strong id="taskCurrentPhase">-</strong>
+              </div>
+              <div class="stat-chip">
+                <span class="stat-label">优先级</span>
+                <strong id="taskPriority">-</strong>
+              </div>
+              <div class="stat-chip">
+                <span class="stat-label">阻塞</span>
+                <strong id="taskBlockers">-</strong>
+              </div>
+              <div class="stat-chip">
+                <span class="stat-label">机器</span>
+                <strong id="taskMachines">-</strong>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="section-head">
+              <h2>任务定义</h2>
+            </div>
+            <div id="taskMeta" class="meta-grid"></div>
+          </section>
+
+          <section class="panel">
+            <div class="section-head">
+              <h2>计划与阶段</h2>
+            </div>
+            <div id="planPanel" class="detail-stack"></div>
+          </section>
+
+          <section class="panel">
+            <div class="section-head">
+              <h2>实验记录</h2>
+            </div>
+            <div id="experimentPanel" class="detail-stack"></div>
+          </section>
+
+          <section class="panel">
+            <div class="section-head">
+              <h2>运行时</h2>
+              <div class="section-actions">
+                <button id="runtimeProbeButton" class="ghost-button slim-button" type="button">探测 App Server</button>
+                <button id="runtimeAttachButton" class="ghost-button slim-button" type="button">附加会话</button>
+                <button id="runtimeProbeStopButton" class="ghost-button slim-button" type="button">停止 App Server</button>
+                <button id="runtimeStartButton" class="ghost-button slim-button" type="button">启动</button>
+                <button id="runtimeStopButton" class="ghost-button slim-button" type="button">停止</button>
+                <button id="runtimeReconnectButton" class="ghost-button slim-button" type="button">重连</button>
+              </div>
+            </div>
+            <p id="runtimeHint" class="panel-note">先探测 App Server，再附加主会话。附加成功后，交接包和消息会通过真实 Codex thread 发出，主会话按钮仍保留 control-plane stub 作为回退。</p>
+            <div id="runtimePanel" class="detail-stack"></div>
+            <div class="runtime-message-box">
+              <textarea id="runtimeMessageInput" class="field-input field-textarea compact-textarea" placeholder="输入要发给当前主会话的消息。"></textarea>
+              <div class="section-actions">
+                <button id="runtimeSendHandoffButton" class="ghost-button slim-button" type="button">发送交接包</button>
+                <button id="runtimeSendMessageButton" class="ghost-button slim-button" type="button">发送消息</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="section-head">
+              <h2>交接包</h2>
+              <div class="section-actions">
+                <button id="handoffDiscussButton" class="ghost-button slim-button" type="button">讨论模式</button>
+                <button id="handoffExecuteButton" class="ghost-button slim-button" type="button">执行模式</button>
+                <button id="copyPromptButton" class="ghost-button slim-button" type="button">复制起始消息</button>
+              </div>
+            </div>
+            <p id="handoffModeHint" class="panel-note">系统会按当前阶段推荐交接模式，你也可以手动切换。</p>
+            <div id="handoffPanel" class="handoff-panel"></div>
+          </section>
+
+          <section class="panel">
+            <div class="section-head">
+              <h2>过程流</h2>
+              <div class="section-actions">
+                <button id="detailEventToggle" class="ghost-button slim-button" type="button">显示详细事件</button>
+                <button id="processToggleButton" class="ghost-button slim-button" type="button">展开过程流</button>
+              </div>
+            </div>
+            <p class="panel-note">当前版本基于任务记录构建。点击“刷新索引”可以同步你手动推进后的最新变化。</p>
+            <div id="processPanel" class="process-stream" hidden></div>
+          </section>
+        </aside>
+      </section>
+    </main>
+  </div>
+
+  <div id="guideOverlay" class="guide-overlay" hidden></div>
+  <aside id="guideDrawer" class="guide-drawer" aria-hidden="true">
+    <div class="guide-drawer-head">
+      <div>
+        <p class="eyebrow">Guide</p>
+        <h2>使用指南</h2>
+      </div>
+      <button id="guideCloseButton" class="ghost-button slim-button" type="button">关闭</button>
+    </div>
+    <div id="guideContent" class="guide-content"></div>
+  </aside>
+
+  <template id="emptyStateTemplate">
+    <div class="empty-state">
+      <strong>这里还没有内容</strong>
+      <p>当控制面记录了更多任务、结论或实验后，这里会自动显示。</p>
+    </div>
+  </template>
+
+  <script type="module" src="./app-operable-zh.js"></script>
+</body>
+</html>

@@ -1,0 +1,52 @@
+# Local auth and user-specific runtime state
+auth.json
+history.jsonl
+models_cache.json
+version.json
+config.toml
+cap_sid
+.personality_migration
+
+# SQLite runtime databases
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+
+# Logs and caches
+log/
+cache/
+logs/
+*.log
+sandbox.log
+scripts/__pycache__/
+
+# Local temp and sandbox output
+tmp/
+.tmp/
+.sandbox/
+.sandbox-bin/
+
+# Local control-plane runtime data
+indexes/
+sessions/
+tasks/20*/
+accounts/*.md
+!accounts/README.md
+!accounts/_templates/
+!accounts/_templates/**
+machines/*.md
+!machines/README.md
+!machines/_templates/
+!machines/_templates/**
+rules/*.rules
+
+# Frontend build artifacts
+gui/node_modules/
+gui/dist/
+
+# Local SSH keys kept under workspace
+memories/id_ed25519_github_codex*
+
+# OS/editor noise
+.DS_Store
+Thumbs.db

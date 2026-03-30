@@ -1,0 +1,254 @@
+:root {
+  --bg: #0a0d12;
+  --bg-strong: #0f131a;
+  --panel: rgba(17, 21, 28, 0.92);
+  --panel-strong: rgba(13, 17, 24, 0.98);
+  --line: rgba(255, 255, 255, 0.08);
+  --text: #edf2f7;
+  --muted: #96a2b5;
+  --accent: #7dd3fc;
+  --accent-strong: #38bdf8;
+  --teal: #7dd3fc;
+  --success: #34d399;
+  --warn: #f59e0b;
+  --shadow: 0 18px 44px rgba(0, 0, 0, 0.38);
+  --radius-xl: 20px;
+  --radius-lg: 16px;
+  --radius-md: 12px;
+  --font-ui: "Segoe UI Variable", "SF Pro Text", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-display: "Segoe UI Variable", "SF Pro Display", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+html,
+body {
+  background: linear-gradient(180deg, #090c11 0%, #0d1117 100%);
+  color: var(--text);
+}
+
+body::before,
+body::after {
+  display: none;
+}
+
+.panel,
+.brand-card,
+.rail-section,
+.resource-popover-body,
+.guide-drawer {
+  background: var(--panel);
+  border-color: var(--line);
+  box-shadow: var(--shadow);
+  backdrop-filter: none;
+}
+
+.app-shell {
+  gap: 18px;
+}
+
+.top-toolbar,
+.task-overview-panel,
+.task-tabs-shell,
+.hero-panel,
+.panel {
+  border-radius: 16px;
+}
+
+.toolbar-brand h1,
+.hero-copy h2,
+.task-tabs-head h2 {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
+
+.toolbar-brand h1,
+.hero-copy h2 {
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+}
+
+.eyebrow {
+  color: var(--accent);
+  letter-spacing: 0.1em;
+}
+
+.ghost-button,
+.task-tab-button {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+}
+
+.ghost-button:hover,
+.task-tab-button:hover {
+  background: rgba(125, 211, 252, 0.08);
+  border-color: rgba(125, 211, 252, 0.24);
+  color: var(--text);
+}
+
+.ghost-button.is-active,
+.task-tab-button.is-active {
+  background: rgba(125, 211, 252, 0.12);
+  border-color: rgba(125, 211, 252, 0.28);
+  color: #dff6ff;
+}
+
+.badge,
+.task-chip,
+.stat-chip,
+.meta-card,
+.stack-card,
+.experiment-card,
+.timeline-item,
+.mini-card {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+}
+
+.task-overview-panel {
+  padding: 18px 20px;
+}
+
+.task-strip {
+  gap: 10px;
+  padding-bottom: 2px;
+}
+
+.task-switcher {
+  min-width: 210px;
+  max-width: 260px;
+  padding: 14px 16px;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.task-switcher:hover,
+.task-switcher.is-active {
+  transform: translateY(-1px);
+  background: rgba(125, 211, 252, 0.06);
+  border-color: rgba(125, 211, 252, 0.22);
+}
+
+.task-switcher-main {
+  align-items: center;
+}
+
+.task-switcher-main strong {
+  font-size: 0.98rem;
+}
+
+.task-switcher-meta {
+  justify-content: flex-start;
+}
+
+.task-switcher-subtitle,
+.panel-note,
+.hero-summary,
+.mini-note,
+.meta-label,
+.runtime-chat-history-head,
+.task-row-subtitle,
+.task-row-meta,
+.task-row-summary,
+.runtime-reply-empty {
+  color: var(--muted);
+}
+
+.task-chip-live {
+  background: rgba(52, 211, 153, 0.14);
+  color: #b6f7de;
+}
+
+.task-chip-stub {
+  background: rgba(245, 158, 11, 0.16);
+  color: #f8d48b;
+}
+
+.task-chip-offline {
+  background: rgba(239, 68, 68, 0.14);
+  color: #f7b8b8;
+}
+
+.hero-panel {
+  padding: 22px;
+  gap: 16px;
+}
+
+.hero-actions {
+  margin-top: 12px;
+}
+
+.hero-stats {
+  gap: 10px;
+}
+
+.detail-workspace {
+  gap: 16px;
+}
+
+.task-tabs-shell {
+  padding: 18px 20px;
+  background: rgba(10, 14, 20, 0.94);
+}
+
+.task-tab-bar {
+  border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+
+.task-tab-panel {
+  gap: 16px;
+}
+
+.task-tab-panel > .panel,
+.task-tab-panel > .insights-grid {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+}
+
+.insights-grid {
+  gap: 14px;
+}
+
+.runtime-reply-card,
+.chat-bubble,
+.runtime-chat-history {
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.chat-bubble {
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.chat-bubble-primary {
+  background: rgba(125, 211, 252, 0.07);
+  border-color: rgba(125, 211, 252, 0.18);
+}
+
+.field-input,
+.field-textarea,
+select.field-input,
+textarea.field-input {
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.field-input::placeholder,
+.field-textarea::placeholder {
+  color: #6f7b8f;
+}
+
+.empty-state {
+  border: 1px dashed rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.guide-drawer {
+  background: rgba(12, 16, 22, 0.98);
+}
+
+.resource-popover-body {
+  background: rgba(12, 16, 22, 0.98);
+}
