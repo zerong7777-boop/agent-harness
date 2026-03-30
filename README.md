@@ -86,6 +86,8 @@ The most important directories are:
 - `gui/`: current GUI plus the next frontend scaffold
 - `guides/`: operational guides such as remote execution patterns
 
+For a reader-friendly system overview, start with [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md).
+
 ## Design Principles
 
 - Markdown is the source of truth
