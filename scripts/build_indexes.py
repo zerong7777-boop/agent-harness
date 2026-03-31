@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import tomllib
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -10,6 +11,7 @@ from typing import Any
 
 
 SKIP_FILE_NAMES = {"README.md"}
+DEFAULT_ASSET_SOURCE_ROOT = Path(__file__).resolve().parents[1]
 
 
 @dataclass
@@ -20,10 +22,84 @@ class MarkdownRecord:
     summary: str
 
 
+ASSET_CATEGORY_ORDER = ["skills", "guides", "rules", "templates", "knowledge_links"]
+ASSET_CATEGORY_META: dict[str, dict[str, Any]] = {
+    "skills": {
+        "title": "Skills",
+        "description": "Workflow and execution skills available to the workspace.",
+        "default_expanded": True,
+    },
+    "guides": {
+        "title": "Guides",
+        "description": "Repo guides and operational references.",
+        "default_expanded": True,
+    },
+    "rules": {
+        "title": "Rules",
+        "description": "Policy and guardrail files used by the workspace.",
+        "default_expanded": False,
+    },
+    "templates": {
+        "title": "Templates",
+        "description": "Selected task and knowledge templates.",
+        "default_expanded": False,
+    },
+    "knowledge_links": {
+        "title": "Knowledge Links",
+        "description": "Knowledge and registry reference sources.",
+        "default_expanded": False,
+    },
+}
+STAGE_TO_RECOMMENDED_TAGS: dict[str, list[str]] = {
+    "clarification": ["brainstorming", "spec", "handoff"],
+    "planning": ["plan", "design", "task-breakdown"],
+    "execution": ["runtime", "experiment", "machine", "implementation"],
+    "verification": ["verification", "review", "handoff"],
+    "knowledge-review": ["memory", "handoff", "knowledge"],
+}
+TAG_KEYWORDS = [
+    "brainstorming",
+    "spec",
+    "handoff",
+    "plan",
+    "design",
+    "task-breakdown",
+    "runtime",
+    "experiment",
+    "machine",
+    "implementation",
+    "verification",
+    "review",
+    "memory",
+    "knowledge",
+    "guide",
+    "remote",
+    "execution",
+    "policy",
+    "rules",
+    "template",
+    "skill",
+    "registry",
+    "session",
+    "account",
+    "task",
+    "ssh",
+    "linux",
+    "data",
+    "root",
+]
+COMMENT_PREFIXES = ("#", "//", ";", "--")
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Build derived JSON indexes from control-plane Markdown.")
     parser.add_argument("--root", default=".", help="Control-plane root directory.")
     parser.add_argument("--output", default=None, help="Override output directory. Defaults to <root>/indexes.")
+    parser.add_argument(
+        "--asset-source-root",
+        default=str(DEFAULT_ASSET_SOURCE_ROOT),
+        help="Root used for asset discovery. Defaults to the repository root.",
+    )
     return parser.parse_args()
 
 
@@ -44,6 +120,65 @@ def parse_markdown_record(path: Path) -> MarkdownRecord:
     return MarkdownRecord(path=path, data=data, body=body, summary=summary)
 
 
+def parse_optional_markdown_record(path: Path) -> tuple[dict[str, Any], str] | None:
+    try:
+        text = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return None
+    if text.startswith("+++\n"):
+        end_marker = "\n+++"
+        end_index = text.find(end_marker, 4)
+        if end_index != -1:
+            frontmatter = text[4:end_index]
+            body = text[end_index + len(end_marker):].lstrip("\r\n")
+            try:
+                return tomllib.loads(frontmatter), body
+            except tomllib.TOMLDecodeError:
+                return {}, body
+    if text.startswith("---\n"):
+        end_marker = "\n---"
+        end_index = text.find(end_marker, 4)
+        if end_index != -1:
+            frontmatter = text[4:end_index]
+            body = text[end_index + len(end_marker):].lstrip("\r\n")
+            return parse_yaml_frontmatter(frontmatter), body
+    return {}, text
+
+
+def parse_yaml_frontmatter(frontmatter: str) -> dict[str, Any]:
+    data: dict[str, Any] = {}
+    for raw_line in frontmatter.splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or ":" not in line:
+            continue
+        key, raw_value = line.split(":", 1)
+        data[key.strip()] = parse_scalar_value(raw_value.strip())
+    return data
+
+
+def parse_scalar_value(value: str) -> Any:
+    if not value:
+        return ""
+    if value.startswith("[") and value.endswith("]"):
+        try:
+            return json.loads(value.replace("'", '"'))
+        except json.JSONDecodeError:
+            return [part.strip().strip('"').strip("'") for part in value[1:-1].split(",") if part.strip()]
+    if value.startswith('"') and value.endswith('"'):
+        return value[1:-1]
+    if value.startswith("'") and value.endswith("'"):
+        return value[1:-1]
+    lower = value.lower()
+    if lower in {"true", "false"}:
+        return lower == "true"
+    if re.fullmatch(r"-?\d+", value):
+        try:
+            return int(value)
+        except ValueError:
+            return value
+    return value
+
+
 def extract_summary(body: str) -> str:
     paragraph: list[str] = []
     for raw_line in body.splitlines():
@@ -56,6 +191,401 @@ def extract_summary(body: str) -> str:
             continue
         paragraph.append(line)
     return " ".join(paragraph)
+
+
+def extract_first_heading(body: str) -> str:
+    for raw_line in body.splitlines():
+        line = raw_line.strip()
+        if not line.startswith("#"):
+            continue
+        heading = line.lstrip("#").strip()
+        if heading:
+            return heading
+    return ""
+
+
+def extract_first_comment_or_line(text: str) -> str:
+    first_non_empty = ""
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        if not first_non_empty:
+            first_non_empty = line
+        if line.startswith(COMMENT_PREFIXES):
+            return line.lstrip("#/; -").strip()
+    return first_non_empty
+
+
+def slugify(value: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
+    return slug or "item"
+
+
+def tokenize_text(value: str) -> set[str]:
+    normalized = re.sub(r"[^a-z0-9]+", " ", value.lower())
+    words = [word for word in normalized.split() if word]
+    tokens = set(words)
+    for left, right in zip(words, words[1:]):
+        tokens.add(f"{left}-{right}")
+    return tokens
+
+
+def extract_tags_from_text(*texts: str) -> list[str]:
+    tokens: set[str] = set()
+    for text in texts:
+        tokens.update(tokenize_text(text))
+    tags: list[str] = []
+    for keyword in TAG_KEYWORDS:
+        if keyword in tokens and keyword not in tags:
+            tags.append(keyword)
+    return tags
+
+
+def normalize_tags(*values: Any) -> list[str]:
+    tags: list[str] = []
+    for value in values:
+        if isinstance(value, str) and value:
+            normalized = slugify(value)
+            if normalized not in tags:
+                tags.append(normalized)
+        elif isinstance(value, list):
+            for item in value:
+                if isinstance(item, str) and item and item not in tags:
+                    normalized = slugify(item)
+                    if normalized not in tags:
+                        tags.append(normalized)
+    return tags
+
+
+def build_asset_item(
+    *,
+    asset_id: str,
+    category: str,
+    title: str,
+    summary: str,
+    source_root: Path,
+    source_path: Path,
+    status: str,
+    phase_hints: list[str],
+    tags: list[str],
+) -> dict[str, Any]:
+    return {
+        "asset_id": asset_id,
+        "category": category,
+        "title": title,
+        "summary": summary,
+        "source_root_id": "asset-source-root",
+        "source_path": relpath(source_path, source_root),
+        "status": status,
+        "phase_hints": sorted(set(phase_hints)),
+        "tags": sorted(set(tags)),
+    }
+
+
+def infer_phase_hints(tags: list[str]) -> list[str]:
+    hints: set[str] = set()
+    for stage, stage_tags in STAGE_TO_RECOMMENDED_TAGS.items():
+        if any(tag in tags for tag in stage_tags):
+            hints.add(stage)
+    return sorted(hints)
+
+
+def build_asset_recommendations(assets: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
+    recommendations: dict[str, list[dict[str, Any]]] = {}
+    for stage, stage_tags in STAGE_TO_RECOMMENDED_TAGS.items():
+        scored: list[tuple[int, str, dict[str, Any]]] = []
+        for asset in assets:
+            tags = set(asset.get("tags", []))
+            phase_hints = set(asset.get("phase_hints", []))
+            score = sum(1 for tag in stage_tags if tag in tags or tag in phase_hints)
+            if score:
+                scored.append((score, str(asset.get("title", "")), asset))
+        scored.sort(key=lambda item: (-item[0], item[1], str(item[2].get("asset_id", ""))))
+        recommendations[stage] = [item[2] for item in scored[:5]]
+    return recommendations
+
+
+def collect_skill_assets(root: Path) -> list[dict[str, Any]]:
+    skills_root = root / "skills"
+    if not skills_root.exists():
+        return []
+
+    items: list[dict[str, Any]] = []
+    for path in sorted(skills_root.rglob("SKILL.md")):
+        record = parse_optional_markdown_record(path)
+        if record is None:
+            continue
+        data, body = record
+        title = str(data.get("name") or data.get("title") or path.parent.name)
+        summary = str(data.get("description") or extract_summary(body) or extract_first_heading(body))
+        raw_tags = normalize_tags(data.get("tags", []))
+        tags = normalize_tags(
+            raw_tags,
+            extract_tags_from_text(title, summary, path.parent.name, path.as_posix()),
+            ["skill"],
+            ["system"] if ".system" in path.parts else [],
+        )
+        phase_hints = infer_phase_hints(tags)
+        status = "active" if bool(data.get("enabled", True)) else "inactive"
+        items.append(
+            build_asset_item(
+                asset_id=f"skills:{slugify(str(data.get('name') or path.parent.name))}",
+                category="skills",
+                title=title,
+                summary=summary,
+                source_root=root,
+                source_path=path,
+                status=status,
+                phase_hints=phase_hints,
+                tags=tags,
+            )
+        )
+    items.sort(key=lambda item: (item["title"].lower(), item["asset_id"]))
+    return items
+
+
+def collect_guide_assets(root: Path) -> list[dict[str, Any]]:
+    guides_root = root / "guides"
+    if not guides_root.exists():
+        return []
+
+    items: list[dict[str, Any]] = []
+    for path in sorted(guides_root.rglob("*.md")):
+        record = parse_optional_markdown_record(path)
+        if record is None:
+            continue
+        data, body = record
+        title = str(data.get("title") or extract_first_heading(body) or path.stem)
+        heading = extract_first_heading(body) or title
+        opening_paragraph = extract_summary(body)
+        if heading and opening_paragraph:
+            summary = f"{heading} — {opening_paragraph}"
+        else:
+            summary = heading or opening_paragraph or title
+        tags = normalize_tags(
+            data.get("tags", []),
+            extract_tags_from_text(title, summary, path.stem, path.as_posix()),
+            ["guide"],
+        )
+        phase_hints = infer_phase_hints(tags)
+        items.append(
+            build_asset_item(
+                asset_id=f"guides:{slugify(path.stem)}",
+                category="guides",
+                title=title,
+                summary=summary,
+                source_root=root,
+                source_path=path,
+                status="reference",
+                phase_hints=phase_hints,
+                tags=tags,
+            )
+        )
+    items.sort(key=lambda item: (item["title"].lower(), item["asset_id"]))
+    return items
+
+
+def collect_rule_assets(root: Path) -> list[dict[str, Any]]:
+    rules_root = root / "rules"
+    if not rules_root.exists():
+        return []
+
+    items: list[dict[str, Any]] = []
+    for path in sorted(rules_root.rglob("*.rules")):
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
+        title = path.stem.replace("-", " ").title()
+        summary_source = extract_first_comment_or_line(text)
+        summary = f"{title}: {summary_source}" if summary_source else title
+        tags = normalize_tags(extract_tags_from_text(title, path.stem, path.as_posix()), ["rules", "policy"])
+        phase_hints = infer_phase_hints(tags)
+        items.append(
+            build_asset_item(
+                asset_id=f"rules:{slugify(path.stem)}",
+                category="rules",
+                title=title,
+                summary=summary,
+                source_root=root,
+                source_path=path,
+                status="policy",
+                phase_hints=phase_hints,
+                tags=tags,
+            )
+        )
+    items.sort(key=lambda item: (item["title"].lower(), item["asset_id"]))
+    return items
+
+
+def collect_template_assets(root: Path) -> list[dict[str, Any]]:
+    template_roots = [root / "tasks" / "_templates"]
+    items: list[dict[str, Any]] = []
+    seen_paths: set[Path] = set()
+    for template_root in template_roots:
+        if not template_root.exists():
+            continue
+        for path in sorted(template_root.rglob("*.md")):
+            if path in seen_paths:
+                continue
+            seen_paths.add(path)
+            record = parse_optional_markdown_record(path)
+            if record is None:
+                continue
+            data, body = record
+            title = str(data.get("title") or path.stem.replace("-", " ").title())
+            relative_parent = path.parent.relative_to(template_root)
+            folder_purpose = " / ".join(part.replace("-", " ") for part in relative_parent.parts) or "templates"
+            summary = f"{title} for {folder_purpose}"
+            tags = normalize_tags(
+                data.get("tags", []),
+                extract_tags_from_text(title, summary, path.stem, folder_purpose, path.as_posix()),
+                ["template"],
+            )
+            phase_hints = infer_phase_hints(tags)
+            asset_group = path.parent.name if path.parent.name != "_templates" else path.parent.parent.name
+            items.append(
+                build_asset_item(
+                    asset_id=f"templates:{slugify(asset_group)}:{slugify(path.stem)}",
+                    category="templates",
+                    title=title,
+                    summary=summary,
+                    source_root=root,
+                    source_path=path,
+                    status="template",
+                    phase_hints=phase_hints,
+                    tags=tags,
+                )
+            )
+    items.sort(key=lambda item: (item["title"].lower(), item["asset_id"]))
+    return items
+
+
+def collect_knowledge_link_assets(root: Path) -> list[dict[str, Any]]:
+    items: list[dict[str, Any]] = []
+
+    knowledge_readme = root / "knowledge" / "README.md"
+    if knowledge_readme.exists():
+        record = parse_optional_markdown_record(knowledge_readme)
+        if record is not None:
+            data, body = record
+            title = str(data.get("title") or extract_first_heading(body) or "Knowledge")
+            summary = str(data.get("summary") or extract_summary(body) or title)
+            tags = normalize_tags(
+                data.get("tags", []),
+                extract_tags_from_text(title, summary, "knowledge", knowledge_readme.as_posix()),
+                ["knowledge", "reference"],
+            )
+            items.append(
+                build_asset_item(
+                    asset_id="knowledge_links:knowledge-readme",
+                    category="knowledge_links",
+                    title=title,
+                    summary=summary,
+                    source_root=root,
+                    source_path=knowledge_readme,
+                    status="reference",
+                    phase_hints=infer_phase_hints(tags),
+                    tags=tags,
+                )
+            )
+
+    registry_root = root / "skills-registry"
+    if registry_root.exists():
+        index_path = registry_root / "index.md"
+        if index_path.exists():
+            record = parse_optional_markdown_record(index_path)
+            if record is not None:
+                data, body = record
+                title = str(data.get("title") or extract_first_heading(body) or "Skills Registry")
+                summary = str(data.get("summary") or extract_summary(body) or title)
+                tags = normalize_tags(
+                    data.get("tags", []),
+                    extract_tags_from_text(title, summary, "skills-registry", index_path.as_posix()),
+                    ["knowledge", "registry", "reference"],
+                )
+                items.append(
+                    build_asset_item(
+                        asset_id="knowledge_links:skills-registry-index",
+                        category="knowledge_links",
+                        title=title,
+                        summary=summary,
+                        source_root=root,
+                        source_path=index_path,
+                        status=str(data.get("object_kind") or "reference"),
+                        phase_hints=infer_phase_hints(tags),
+                        tags=tags,
+                    )
+                )
+
+        for path in sorted((registry_root / "sources").glob("*.md")):
+            record = parse_optional_markdown_record(path)
+            if record is None:
+                continue
+            data, body = record
+            source_id = str(data.get("source_id") or path.stem)
+            title = str(data.get("title") or source_id.replace("-", " ").title())
+            summary = str(data.get("summary") or extract_summary(body) or title)
+            tags = normalize_tags(
+                data.get("tags", []),
+                extract_tags_from_text(title, summary, source_id, "source", path.as_posix()),
+                ["knowledge", "registry", "reference", "source"],
+            )
+            items.append(
+                build_asset_item(
+                    asset_id=f"knowledge_links:skills-registry:{slugify(source_id)}",
+                    category="knowledge_links",
+                    title=title,
+                    summary=summary,
+                    source_root=root,
+                    source_path=path,
+                    status=str(data.get("governance_status") or "reference"),
+                    phase_hints=infer_phase_hints(tags),
+                    tags=tags,
+                )
+            )
+
+    items.sort(key=lambda item: (item["title"].lower(), item["asset_id"]))
+    return items
+
+
+def collect_assets(root: Path) -> dict[str, Any]:
+    categories: dict[str, list[dict[str, Any]]] = {
+        "skills": collect_skill_assets(root),
+        "guides": collect_guide_assets(root),
+        "rules": collect_rule_assets(root),
+        "templates": collect_template_assets(root),
+        "knowledge_links": collect_knowledge_link_assets(root),
+    }
+    category_payloads: list[dict[str, Any]] = []
+    all_assets: list[dict[str, Any]] = []
+    for category in ASSET_CATEGORY_ORDER:
+        items = categories.get(category, [])
+        all_assets.extend(items)
+        meta = ASSET_CATEGORY_META[category]
+        category_payloads.append(
+            {
+                "id": category,
+                "title": meta["title"],
+                "description": meta["description"],
+                "count": len(items),
+                "default_expanded": meta["default_expanded"],
+                "items": items,
+            }
+        )
+    return {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "source_roots": [
+            {
+                "id": "asset-source-root",
+                "kind": "repo-root-relative",
+                "description": "Asset source_path values are relative to the asset discovery root.",
+            }
+        ],
+        "categories": category_payloads,
+        "task_recommendations": build_asset_recommendations(all_assets),
+    }
 
 
 def extract_bullet_events(body: str) -> list[dict[str, str]]:
@@ -100,7 +630,14 @@ def safe_iso(value: str | None) -> datetime:
 
 def write_json(path: Path, payload: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    content = json.dumps(payload, indent=2, ensure_ascii=False) + "\n"
+    if path.exists():
+        try:
+            if path.read_text(encoding="utf-8") == content:
+                return
+        except OSError:
+            pass
+    path.write_text(content, encoding="utf-8")
 
 
 def clear_json_children(folder: Path) -> None:
@@ -664,7 +1201,12 @@ def build_overview(
     }
 
 
-def build_indexes(root: Path, output: Path | None = None) -> dict[str, Any]:
+def build_indexes(
+    root: Path,
+    output: Path | None = None,
+    *,
+    asset_source_root: Path | None = None,
+) -> dict[str, Any]:
     destination = output or (root / "indexes")
     destination.mkdir(parents=True, exist_ok=True)
 
@@ -681,6 +1223,7 @@ def build_indexes(root: Path, output: Path | None = None) -> dict[str, Any]:
     accounts = collect_simple_records(root, "accounts", "account", "account_id")
     machines = collect_simple_records(root, "machines", "machine", "machine_id")
     skills_registry = collect_skills_registry(root)
+    assets = collect_assets(asset_source_root or root)
     overview = build_overview(tasks, pending_decisions, recent_findings, knowledge, accounts, machines)
 
     write_json(destination / "overview.json", overview)
@@ -691,6 +1234,7 @@ def build_indexes(root: Path, output: Path | None = None) -> dict[str, Any]:
     write_json(destination / "knowledge.json", {"generated_at": overview["generated_at"], "entries": knowledge})
     write_json(destination / "accounts.json", {"generated_at": overview["generated_at"], "accounts": accounts})
     write_json(destination / "machines.json", {"generated_at": overview["generated_at"], "machines": machines})
+    write_json(destination / "assets.json", assets)
     write_json(
         destination / "skills-registry.json",
         {
@@ -727,7 +1271,8 @@ def main() -> None:
     args = parse_args()
     root = Path(args.root).resolve()
     output = Path(args.output).resolve() if args.output else root / "indexes"
-    build_indexes(root, output)
+    asset_source_root = Path(args.asset_source_root).resolve()
+    build_indexes(root, output, asset_source_root=asset_source_root)
 
 
 if __name__ == "__main__":

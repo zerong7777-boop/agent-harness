@@ -28,7 +28,8 @@ Current repo capabilities:
 - Maintain task memory, session memory, and runtime metadata
 - Generate JSON indexes for GUI and other read-side consumers
 - Run a local control-plane server for task inspection and mutation
-- Provide a GUI for task switching, runtime status, handoff, and session flow
+- Provide a GUI workspace with `Tasks` and `Assets` as first-class surfaces
+- Show task-context recommended assets alongside task state and runtime controls
 - Keep reusable workflow docs and skill references close to the execution layer
 
 ## Who It Is For

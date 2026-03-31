@@ -15,7 +15,7 @@ At a high level, Agent Harness has three layers:
    JSON indexes are generated from the Markdown records so the GUI and other consumers can read stable summaries without reparsing the entire workspace.
 
 3. Runtime and interface
-   A Python control-plane server exposes task actions and runtime operations, while the GUI presents the current task, runtime state, and recent session activity.
+   A Python control-plane server exposes task actions and runtime operations, while the GUI presents the current task, runtime state, recent session activity, and workspace assets.
 
 ## Core Objects
 
@@ -81,13 +81,27 @@ It separates:
 
 This makes the workspace methodical about workflow capabilities instead of treating skills as undocumented prompt fragments.
 
+### Assets
+
+Agent Harness now exposes a read-only `Assets` surface in the GUI.
+
+Assets are derived from repo-root resources such as:
+
+- `skills/`
+- `guides/`
+- `rules/`
+- selected task templates
+- knowledge links and skill-registry references
+
+The current `Assets` page is category-overview-first and is meant to support task execution, not replace it. It also feeds compact task-context recommendations inside the task overview.
+
 ## Data Flow
 
 The default data flow is:
 
 1. A task, runtime, or session record is written in Markdown
 2. The index builder generates JSON summaries under `indexes/`
-3. The GUI reads those indexes to render task state and runtime state
+3. The GUI reads those indexes to render task state, runtime state, and assets
 4. The control-plane server performs approved mutations and writes the source records back to disk
 
 This keeps the system inspectable.

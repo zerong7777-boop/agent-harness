@@ -7,6 +7,7 @@ The GUI reads derived indexes from the control plane and talks to the Python ser
 ## Reads
 
 - `indexes/overview.json`
+- `indexes/assets.json`
 - `indexes/tasks.json`
 - `indexes/task-details/*.json`
 - `indexes/accounts.json`
@@ -32,7 +33,9 @@ http://localhost:4173/gui/
 The current GUI is still evolving. Right now it focuses on:
 
 - switching between tasks
+- browsing workspace assets by category
 - inspecting task state and runtime state
+- recommending a small set of relevant assets from the current task stage
 - reviewing recent replies and session flow
 - performing control-plane actions such as task progression and runtime attachment
 

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Codex 鎺у埗闈?/title>
+  <title>Agent Harness 控制面</title>
   <link rel="stylesheet" href="./styles.css">
   <link rel="stylesheet" href="./styles-v4.css">
 </head>
@@ -12,17 +12,17 @@
     <aside class="left-rail">
       <div class="brand-card">
         <p class="eyebrow">Agent Harness</p>
-        <h1>鎺у埗闈?/h1>
-        <p class="lede">浠ヤ换鍔′负涓績锛屾妸鍐崇瓥銆佽瘉鎹拰杩涘害鏀捐繘鍚屼竴涓鍥鹃噷銆?/p>
+        <h1>控制面</h1>
+        <p class="lede">以任务为中心，把决策、证据和进度放进同一个视图里。</p>
         <div class="section-actions">
-          <button id="guideToggleButton" class="ghost-button slim-button" type="button">浣跨敤鎸囧崡</button>
-          <button id="refreshButton" class="ghost-button slim-button" type="button">鍒锋柊绱㈠紩</button>
+          <button id="guideToggleButton" class="ghost-button slim-button" type="button">使用指南</button>
+          <button id="refreshButton" class="ghost-button slim-button" type="button">刷新索引</button>
         </div>
       </div>
 
       <section class="rail-section">
         <div class="section-head">
-          <h2>鏀寔瑙嗗浘</h2>
+          <h2>支持视图</h2>
         </div>
         <div id="accountList" class="mini-list"></div>
         <div id="machineList" class="mini-list top-spaced"></div>
@@ -32,29 +32,29 @@
     <main class="main-stage">
       <section class="summary-grid">
         <article class="panel metric-panel">
-          <p class="eyebrow">鎬昏</p>
+          <p class="eyebrow">总览</p>
           <div class="metric-grid">
             <div>
-              <span class="metric-label">娲昏穬浠诲姟</span>
+              <span class="metric-label">活跃任务</span>
               <strong id="activeTaskCount" class="metric-value">0</strong>
             </div>
             <div>
-              <span class="metric-label">寰呭喅绛栦簨椤?/span>
+              <span class="metric-label">待决策事项</span>
               <strong id="pendingDecisionCount" class="metric-value">0</strong>
             </div>
             <div>
-              <span class="metric-label">鏈哄櫒</span>
+              <span class="metric-label">机器</span>
               <strong id="machineCount" class="metric-value">0</strong>
             </div>
             <div>
-              <span class="metric-label">鐭ヨ瘑鏉＄洰</span>
+              <span class="metric-label">知识条目</span>
               <strong id="knowledgeCount" class="metric-value">0</strong>
             </div>
           </div>
         </article>
         <article class="panel metric-panel">
           <div class="section-head">
-            <h2>寰呬綘澶勭悊</h2>
+            <h2>待你处理</h2>
             <span id="decisionBadge" class="badge accent">0</span>
           </div>
           <div id="decisionList" class="stack-list"></div>
@@ -64,14 +64,14 @@
       <section class="content-grid">
         <article class="panel">
           <div class="section-head">
-            <h2>鏈€杩戝叧閿粨璁?/h2>
+            <h2>最近关键结论</h2>
           </div>
           <div id="findingList" class="stack-list empty-friendly"></div>
         </article>
 
         <article class="panel">
           <div class="section-head">
-            <h2>瀹為獙鏃堕棿绾?/h2>
+            <h2>实验时间线</h2>
           </div>
           <div id="timelineList" class="timeline"></div>
         </article>
@@ -80,29 +80,30 @@
       <section class="workspace-grid">
         <section class="panel task-hub-panel">
           <div class="section-head">
-            <h2>浠诲姟鎬昏</h2>
+            <h2>任务总览</h2>
             <div class="section-actions">
-              <button id="toggleCreateTaskButton" class="ghost-button slim-button" type="button">鏂板缓浠诲姟</button>
+              <button id="toggleArchivedTasksButton" class="ghost-button slim-button" type="button">显示归档</button>
+              <button id="toggleCreateTaskButton" class="ghost-button slim-button" type="button">新建任务</button>
               <span id="taskCountBadge" class="badge">0</span>
             </div>
           </div>
-          <p class="panel-note">浼樺厛浠庤繖閲屽垏鎹㈠拰姣旇緝浠诲姟銆傚悗缁浠诲姟骞惰鏃讹紝杩欓噷浼氱户缁墿灞曟垚鏇撮珮瀵嗗害鐨勬€昏鍖恒€?/p>
+          <p class="panel-note">优先从这里切换和比较任务。后续多任务并行时，这里会继续扩展成更高密度的总览区。</p>
           <div id="createTaskPanel" class="create-task-panel" hidden>
             <div class="create-task-grid">
               <label class="field-label">
-                <span>浠诲姟鏍囬</span>
-                <input id="createTaskTitle" class="field-input" type="text" placeholder="渚嬪锛歊FvNext 澶嶇幇瀹為獙" />
+                <span>任务标题</span>
+                <input id="createTaskTitle" class="field-input" type="text" placeholder="例如：RFvNext 复现实验" />
               </label>
               <label class="field-label">
-                <span>鐭悕</span>
-                <input id="createTaskShortName" class="field-input" type="text" placeholder="鍙€夛紝榛樿鎸夋爣棰樼敓鎴? />
+                <span>短名</span>
+                <input id="createTaskShortName" class="field-input" type="text" placeholder="可选，默认按标题生成" />
               </label>
               <label class="field-label field-span-2">
-                <span>浠诲姟鎽樿</span>
-                <textarea id="createTaskSummary" class="field-input field-textarea compact-textarea" placeholder="涓€鍙ヨ瘽璇存槑杩欎釜浠诲姟鎯宠В鍐充粈涔堛€?></textarea>
+                <span>任务摘要</span>
+                <textarea id="createTaskSummary" class="field-input field-textarea compact-textarea" placeholder="一句话说明这个任务想解决什么。"></textarea>
               </label>
               <label class="field-label">
-                <span>浼樺厛绾?/span>
+                <span>优先级</span>
                 <select id="createTaskPriority" class="field-input">
                   <option value="P1">P1</option>
                   <option value="P2" selected>P2</option>
@@ -110,16 +111,16 @@
                 </select>
               </label>
               <label class="field-label">
-                <span>璐﹀彿</span>
+                <span>账号</span>
                 <select id="createTaskAccount" class="field-input"></select>
               </label>
               <label class="field-label field-span-2">
-                <span>鏈哄櫒</span>
+                <span>机器</span>
                 <select id="createTaskMachine" class="field-input"></select>
               </label>
             </div>
             <div class="section-actions">
-              <button id="submitCreateTaskButton" class="ghost-button slim-button" type="button">鍒涘缓浠诲姟</button>
+              <button id="submitCreateTaskButton" class="ghost-button slim-button" type="button">创建任务</button>
             </div>
           </div>
           <div id="taskList" class="task-list task-list-dense"></div>
@@ -128,33 +129,34 @@
         <aside class="detail-sidebar">
           <section class="hero-panel panel hero-panel-compact">
             <div class="hero-copy">
-              <p class="eyebrow">浠诲姟鐒︾偣</p>
-              <h2 id="taskTitle">灏氭湭閫夋嫨浠诲姟</h2>
-              <p id="taskSummary" class="hero-summary">浠庝换鍔℃€昏涓€夋嫨涓€涓换鍔★紝鏌ョ湅瀹冨綋鍓嶇殑鐘舵€併€佸喅绛栦笌瀹為獙璁板綍銆?/p>
+              <p class="eyebrow">任务焦点</p>
+              <h2 id="taskTitle">尚未选择任务</h2>
+              <p id="taskSummary" class="hero-summary">从任务总览中选择一个任务，查看它当前的状态、决策与实验记录。</p>
               <div class="hero-actions">
-                <p id="taskNextStageHint" class="hero-summary hero-summary-compact">閫夋嫨涓€涓换鍔″悗锛岃繖閲屼細鏄剧ず寤鸿鐨勪笅涓€姝ャ€?/p>
-                <button id="advanceStageButton" class="ghost-button slim-button" type="button">鎺ㄨ繘鍒颁笅涓€闃舵</button>
+                <p id="taskNextStageHint" class="hero-summary hero-summary-compact">选择一个任务后，这里会显示建议的下一步。</p>
+                <button id="archiveTaskButton" class="ghost-button slim-button" type="button">归档任务</button>
+                <button id="advanceStageButton" class="ghost-button slim-button" type="button">推进到下一阶段</button>
               </div>
             </div>
             <div class="hero-stats">
               <div class="stat-chip">
-                <span class="stat-label">涓婚樁娈?/span>
+                <span class="stat-label">主阶段</span>
                 <strong id="taskStage">-</strong>
               </div>
               <div class="stat-chip">
-                <span class="stat-label">褰撳墠 phase</span>
+                <span class="stat-label">当前 phase</span>
                 <strong id="taskCurrentPhase">-</strong>
               </div>
               <div class="stat-chip">
-                <span class="stat-label">浼樺厛绾?/span>
+                <span class="stat-label">优先级</span>
                 <strong id="taskPriority">-</strong>
               </div>
               <div class="stat-chip">
-                <span class="stat-label">闃诲</span>
+                <span class="stat-label">阻塞</span>
                 <strong id="taskBlockers">-</strong>
               </div>
               <div class="stat-chip">
-                <span class="stat-label">鏈哄櫒</span>
+                <span class="stat-label">机器</span>
                 <strong id="taskMachines">-</strong>
               </div>
             </div>
@@ -162,70 +164,70 @@
 
           <section class="panel">
             <div class="section-head">
-              <h2>浠诲姟瀹氫箟</h2>
+              <h2>任务定义</h2>
             </div>
             <div id="taskMeta" class="meta-grid"></div>
           </section>
 
           <section class="panel">
             <div class="section-head">
-              <h2>璁″垝涓庨樁娈?/h2>
+              <h2>计划与阶段</h2>
             </div>
             <div id="planPanel" class="detail-stack"></div>
           </section>
 
           <section class="panel">
             <div class="section-head">
-              <h2>瀹為獙璁板綍</h2>
+              <h2>实验记录</h2>
             </div>
             <div id="experimentPanel" class="detail-stack"></div>
           </section>
 
           <section class="panel">
             <div class="section-head">
-              <h2>杩愯鏃?/h2>
+              <h2>运行时</h2>
               <div class="section-actions">
-                <button id="runtimeProbeButton" class="ghost-button slim-button" type="button">鎺㈡祴 App Server</button>
-                <button id="runtimeAttachButton" class="ghost-button slim-button" type="button">闄勫姞浼氳瘽</button>
-                <button id="runtimeProbeStopButton" class="ghost-button slim-button" type="button">鍋滄 App Server</button>
-                <button id="runtimeStartButton" class="ghost-button slim-button" type="button">鍚姩</button>
-                <button id="runtimeStopButton" class="ghost-button slim-button" type="button">鍋滄</button>
-                <button id="runtimeReconnectButton" class="ghost-button slim-button" type="button">閲嶈繛</button>
+                <button id="runtimeProbeButton" class="ghost-button slim-button" type="button">探测 App Server</button>
+                <button id="runtimeAttachButton" class="ghost-button slim-button" type="button">附加会话</button>
+                <button id="runtimeProbeStopButton" class="ghost-button slim-button" type="button">停止 App Server</button>
+                <button id="runtimeStartButton" class="ghost-button slim-button" type="button">启动</button>
+                <button id="runtimeStopButton" class="ghost-button slim-button" type="button">停止</button>
+                <button id="runtimeReconnectButton" class="ghost-button slim-button" type="button">重连</button>
               </div>
             </div>
-            <p id="runtimeHint" class="panel-note">鍏堟帰娴?App Server锛屽啀闄勫姞涓讳細璇濄€傞檮鍔犳垚鍔熷悗锛屼氦鎺ュ寘鍜屾秷鎭細閫氳繃鐪熷疄 Codex thread 鍙戝嚭锛屼富浼氳瘽鎸夐挳浠嶄繚鐣?control-plane stub 浣滀负鍥為€€銆?/p>
+            <p id="runtimeHint" class="panel-note">先探测 App Server，再附加主会话。附加成功后，交接包和消息会通过真实 Codex thread 发出，主会话按钮仍保留 control-plane stub 作为回退。</p>
             <div id="runtimePanel" class="detail-stack"></div>
             <div class="runtime-message-box">
-              <textarea id="runtimeMessageInput" class="field-input field-textarea compact-textarea" placeholder="杈撳叆瑕佸彂缁欏綋鍓嶄富浼氳瘽鐨勬秷鎭€?></textarea>
+              <textarea id="runtimeMessageInput" class="field-input field-textarea compact-textarea" placeholder="输入要发给当前主会话的消息。"></textarea>
               <div class="section-actions">
-                <button id="runtimeSendHandoffButton" class="ghost-button slim-button" type="button">鍙戦€佷氦鎺ュ寘</button>
-                <button id="runtimeSendMessageButton" class="ghost-button slim-button" type="button">鍙戦€佹秷鎭?/button>
+                <button id="runtimeSendHandoffButton" class="ghost-button slim-button" type="button">发送交接包</button>
+                <button id="runtimeSendMessageButton" class="ghost-button slim-button" type="button">发送消息</button>
               </div>
             </div>
           </section>
 
           <section class="panel">
             <div class="section-head">
-              <h2>浜ゆ帴鍖?/h2>
+              <h2>交接包</h2>
               <div class="section-actions">
-                <button id="handoffDiscussButton" class="ghost-button slim-button" type="button">璁ㄨ妯″紡</button>
-                <button id="handoffExecuteButton" class="ghost-button slim-button" type="button">鎵ц妯″紡</button>
-                <button id="copyPromptButton" class="ghost-button slim-button" type="button">澶嶅埗璧峰娑堟伅</button>
+                <button id="handoffDiscussButton" class="ghost-button slim-button" type="button">讨论模式</button>
+                <button id="handoffExecuteButton" class="ghost-button slim-button" type="button">执行模式</button>
+                <button id="copyPromptButton" class="ghost-button slim-button" type="button">复制起始消息</button>
               </div>
             </div>
-            <p id="handoffModeHint" class="panel-note">绯荤粺浼氭寜褰撳墠闃舵鎺ㄨ崘浜ゆ帴妯″紡锛屼綘涔熷彲浠ユ墜鍔ㄥ垏鎹€?/p>
+            <p id="handoffModeHint" class="panel-note">系统会按当前阶段推荐交接模式，你也可以手动切换。</p>
             <div id="handoffPanel" class="handoff-panel"></div>
           </section>
 
           <section class="panel">
             <div class="section-head">
-              <h2>杩囩▼娴?/h2>
+              <h2>过程流</h2>
               <div class="section-actions">
-                <button id="detailEventToggle" class="ghost-button slim-button" type="button">鏄剧ず璇︾粏浜嬩欢</button>
-                <button id="processToggleButton" class="ghost-button slim-button" type="button">灞曞紑杩囩▼娴?/button>
+                <button id="detailEventToggle" class="ghost-button slim-button" type="button">显示详细事件</button>
+                <button id="processToggleButton" class="ghost-button slim-button" type="button">展开过程流</button>
               </div>
             </div>
-            <p class="panel-note">褰撳墠鐗堟湰鍩轰簬浠诲姟璁板綍鏋勫缓銆傜偣鍑烩€滃埛鏂扮储寮曗€濆彲浠ュ悓姝ヤ綘鎵嬪姩鎺ㄨ繘鍚庣殑鏈€鏂板彉鍖栥€?/p>
+            <p class="panel-note">当前版本基于任务记录构建。点击“刷新索引”可以同步你手动推进后的最新变化。</p>
             <div id="processPanel" class="process-stream" hidden></div>
           </section>
         </aside>
@@ -238,21 +240,22 @@
     <div class="guide-drawer-head">
       <div>
         <p class="eyebrow">Guide</p>
-        <h2>浣跨敤鎸囧崡</h2>
+        <h2>使用指南</h2>
       </div>
-      <button id="guideCloseButton" class="ghost-button slim-button" type="button">鍏抽棴</button>
+      <button id="guideCloseButton" class="ghost-button slim-button" type="button">关闭</button>
     </div>
     <div id="guideContent" class="guide-content"></div>
   </aside>
 
   <template id="emptyStateTemplate">
     <div class="empty-state">
-      <strong>杩欓噷杩樻病鏈夊唴瀹?/strong>
-      <p>褰撴帶鍒堕潰璁板綍浜嗘洿澶氫换鍔°€佺粨璁烘垨瀹為獙鍚庯紝杩欓噷浼氳嚜鍔ㄦ樉绀恒€?/p>
+      <strong>这里还没有内容</strong>
+      <p>当控制面记录了更多任务、结论或实验后，这里会自动显示。</p>
     </div>
   </template>
 
-  <script type="module" src="./app-operable-zh.js"></script>
+  <script type="module" src="./app-operable-zh.js?v=20260331-archive-fix"></script>
 </body>
 </html>
+
 

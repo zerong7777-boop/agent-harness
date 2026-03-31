@@ -14,6 +14,7 @@ const state = {
   selectedTaskTab: "plan",
   createTaskPanelExpanded: false,
   guideDrawerOpen: false,
+  showArchivedTasks: false,
 };
 
 const elements = {
@@ -27,6 +28,7 @@ const elements = {
   accountList: document.getElementById("accountList"),
   machineList: document.getElementById("machineList"),
   toggleCreateTaskButton: document.getElementById("toggleCreateTaskButton"),
+  toggleArchivedTasksButton: document.getElementById("toggleArchivedTasksButton"),
   createTaskPanel: document.getElementById("createTaskPanel"),
   createTaskTitle: document.getElementById("createTaskTitle"),
   createTaskShortName: document.getElementById("createTaskShortName"),
@@ -49,6 +51,7 @@ const elements = {
   taskStage: document.getElementById("taskStage"),
   taskCurrentPhase: document.getElementById("taskCurrentPhase"),
   taskNextStageHint: document.getElementById("taskNextStageHint"),
+  archiveTaskButton: document.getElementById("archiveTaskButton"),
   advanceStageButton: document.getElementById("advanceStageButton"),
   taskPriority: document.getElementById("taskPriority"),
   taskBlockers: document.getElementById("taskBlockers"),
@@ -381,6 +384,10 @@ function upgradeDetailSection(detailWorkspace, config) {
 }
 
 function initializeLayoutShell() {
+  // Keep the stable static layout for now. The dynamic workspace/tab rewrite
+  // is the source of the current broken task pane and non-responsive tab bug.
+  return;
+/*
   const appShell = document.querySelector(".app-shell");
   const leftRail = document.querySelector(".left-rail");
   const mainStage = document.querySelector(".main-stage");
@@ -542,6 +549,7 @@ function initializeLayoutShell() {
   }
 
   appShell.dataset.layoutReady = "true";
+*/
 }
 
 function renderTaskTabs() {
@@ -840,6 +848,15 @@ function getTaskRuntimeBadge(task) {
   return { label: "IDLE", className: "task-chip-muted", title: "当前没有运行态连接信息" };
 }
 
+function getVisibleTasks() {
+  const visible = state.tasks.filter((task) => state.showArchivedTasks || !task.terminal_state);
+  if (!visible.length && state.selectedTaskId) {
+    const selected = state.tasks.find((task) => task.task_id === state.selectedTaskId);
+    if (selected) return [selected];
+  }
+  return visible;
+}
+
 function getRecentRuntimeMessages(detail, latestReply, maxItems = 3) {
   const sessions = detail?.sessions || [];
   const runtime = getRuntime(detail);
@@ -1077,6 +1094,10 @@ function updateCreateTaskControls() {
   elements.createTaskPanel.hidden = !state.createTaskPanelExpanded;
   elements.toggleCreateTaskButton.textContent = state.createTaskPanelExpanded ? "收起新建" : "新建任务";
   elements.toggleCreateTaskButton.classList.toggle("is-active", state.createTaskPanelExpanded);
+  if (elements.toggleArchivedTasksButton) {
+    elements.toggleArchivedTasksButton.textContent = state.showArchivedTasks ? "隐藏归档" : "显示归档";
+    elements.toggleArchivedTasksButton.classList.toggle("is-active", state.showArchivedTasks);
+  }
 
   const accountSelect = elements.createTaskAccount;
   const machineSelect = elements.createTaskMachine;
@@ -1647,6 +1668,36 @@ async function handleCreateTask(button) {
   }
 }
 
+async function handleArchiveToggle(task, button) {
+  if (!task) return;
+  const terminalState = task.terminal_state === "archived" ? "" : "archived";
+  const previousLabel = button?.textContent || "";
+  if (button) {
+    button.disabled = true;
+    button.textContent = terminalState === "archived" ? "归档中..." : "恢复中...";
+  }
+
+  try {
+    await postJson("/api/tasks/set-terminal-state", {
+      task_id: task.task_id,
+      terminal_state: terminalState,
+      updated_by: "user",
+    });
+    state.taskDetails.clear();
+    if (terminalState === "archived" && !state.showArchivedTasks) {
+      state.selectedTaskId = null;
+    }
+    await renderApp();
+  } catch (error) {
+    window.alert(error.message);
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.textContent = previousLabel;
+    }
+  }
+}
+
 function buildDecisionAction(taskId, decision) {
   if (decision.status !== "pending" && !decision.needs_user_confirmation) {
     return null;
@@ -2070,7 +2121,9 @@ function renderHandoffPanelLegacy(task, detail) {
 function updateAdvanceControls(task, detail) {
   const button = elements.advanceStageButton;
   const hint = elements.taskNextStageHint;
+  const archiveButton = elements.archiveTaskButton;
   button.onclick = null;
+  if (archiveButton) archiveButton.onclick = null;
 
   if (!task || !detail?.task) {
     hint.textContent = "选择一个任务后，这里会显示建议的下一步。";
@@ -2201,15 +2254,16 @@ function renderTaskList() {
 }
 
 function renderTaskStrip() {
-  elements.taskCountBadge.textContent = String(state.tasks.length);
+  const visibleTasks = getVisibleTasks();
+  elements.taskCountBadge.textContent = String(visibleTasks.length);
   elements.taskList.innerHTML = "";
 
-  if (!state.tasks.length) {
+  if (!visibleTasks.length) {
     elements.taskList.append(emptyNode("还没有任务"));
     return;
   }
 
-  state.tasks.forEach((task, index) => {
+  visibleTasks.forEach((task, index) => {
     const effectiveStage = task.current_stage || task.stage;
     const runtimeBadge = getTaskRuntimeBadge(task);
     const chips = [];
@@ -2596,7 +2650,7 @@ async function renderTaskDetailLegacy() {
     renderRuntimePanel(null, null);
     renderProcessPanel(null);
     renderHandoffPanel(null, null);
-    updateAdvanceControls(null, null);
+    updateAdvanceControlsPatched(null, null);
     updateProcessControls();
     renderTaskTabs();
     return;
@@ -2620,7 +2674,7 @@ async function renderTaskDetailLegacy() {
   renderExperimentPanel(detail);
   renderProcessPanel(detail);
   renderHandoffPanel(task, detail);
-  updateAdvanceControls(task, detail);
+  updateAdvanceControlsPatched(task, detail);
   updateProcessControls();
   renderTaskTabs();
 }
@@ -2640,7 +2694,7 @@ async function renderTaskDetail() {
     renderRuntimePanel(null, null);
     renderProcessPanel(null);
     renderHandoffPanel(null, null);
-    updateAdvanceControls(null, null);
+    updateAdvanceControlsPatched(null, null);
     updateProcessControls();
     renderTaskTabs();
     return;
@@ -2666,7 +2720,7 @@ async function renderTaskDetail() {
   renderRuntimePanel(task, detail);
   renderProcessPanel(detail);
   renderHandoffPanel(task, detail);
-  updateAdvanceControls(task, detail);
+  updateAdvanceControlsPatched(task, detail);
   updateProcessControls();
   renderTaskTabs();
 }
@@ -2704,6 +2758,21 @@ elements.toggleCreateTaskButton.addEventListener("click", () => {
   state.createTaskPanelExpanded = !state.createTaskPanelExpanded;
   updateCreateTaskControls();
 });
+
+if (elements.toggleArchivedTasksButton) {
+  elements.toggleArchivedTasksButton.addEventListener("click", async () => {
+    state.showArchivedTasks = !state.showArchivedTasks;
+    if (!state.showArchivedTasks) {
+      const selected = state.tasks.find((task) => task.task_id === state.selectedTaskId);
+      if (selected?.terminal_state) {
+        state.selectedTaskId = null;
+      }
+    }
+    updateCreateTaskControls();
+    await renderTaskDetail();
+    renderTaskStrip();
+  });
+}
 
 elements.submitCreateTaskButton.addEventListener("click", async () => {
   await handleCreateTask(elements.submitCreateTaskButton);
@@ -2842,6 +2911,75 @@ elements.handoffExecuteButton.addEventListener("click", async () => {
   state.handoffModeOverride = "execute";
   await renderTaskDetail();
 });
+
+function updateAdvanceControlsPatched(task, detail) {
+  const button = elements.advanceStageButton;
+  const hint = elements.taskNextStageHint;
+  const archiveButton = elements.archiveTaskButton;
+  button.onclick = null;
+  if (archiveButton) archiveButton.onclick = null;
+
+  if (!task || !detail?.task) {
+    hint.textContent = "选择一个任务后，这里会显示建议的下一步。";
+    button.disabled = true;
+    button.textContent = "推进到下一阶段";
+    if (archiveButton) {
+      archiveButton.disabled = true;
+      archiveButton.textContent = "归档任务";
+    }
+    return;
+  }
+
+  if (archiveButton) {
+    archiveButton.disabled = false;
+    archiveButton.textContent = task.terminal_state === "archived" ? "恢复任务" : "归档任务";
+    archiveButton.onclick = () => handleArchiveToggle(task, archiveButton);
+  }
+
+  const currentStage = getEffectiveStage(detail, task);
+  const nextStage = getNextStage(currentStage);
+  const gateReason = getAdvanceGateReason(detail);
+
+  if (task.terminal_state) {
+    hint.textContent = `这个任务已经处于终态：${task.terminal_state}。`;
+    button.disabled = true;
+    button.textContent = "无法继续推进";
+    return;
+  }
+
+  if (!nextStage) {
+    hint.textContent = "当前已经到最后一个活跃阶段。后续应由你决定是否完成、归档，或重新开新 phase。";
+    button.disabled = true;
+    button.textContent = "没有后续阶段";
+    return;
+  }
+
+  if (hasEffectiveBlockers(detail, task)) {
+    hint.textContent = "任务当前被阻塞，先解除阻塞后再推进到下一阶段。";
+    button.disabled = true;
+    button.textContent = `待推进到${formatMainStage(nextStage)}`;
+    return;
+  }
+
+  if (task.paused) {
+    hint.textContent = "任务当前处于暂停状态，恢复后再推进到下一阶段。";
+    button.disabled = true;
+    button.textContent = `待推进到${formatMainStage(nextStage)}`;
+    return;
+  }
+
+  if (gateReason) {
+    hint.textContent = `当前不能推进：${gateReason}`;
+    button.disabled = true;
+    button.textContent = `待推进到${formatMainStage(nextStage)}`;
+    return;
+  }
+
+  hint.textContent = `下一步建议：把任务从${formatMainStage(currentStage)}推进到${formatMainStage(nextStage)}。这只会更新控制面状态，不会自动启动 Codex 执行。`;
+  button.disabled = false;
+  button.textContent = `推进到${formatMainStage(nextStage)}`;
+  button.onclick = () => handleAdvanceStage(task, button);
+}
 
 initializeLayoutShell();
 

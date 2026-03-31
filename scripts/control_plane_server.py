@@ -19,10 +19,11 @@ from urllib.parse import parse_qs, unquote, urlparse
 from urllib.error import HTTPError, URLError
 from urllib.request import urlopen
 
-from build_indexes import build_indexes, parse_markdown_record as raw_parse_markdown_record
+from build_indexes import build_indexes as raw_build_indexes, parse_markdown_record as raw_parse_markdown_record
 
 
-ROOT = Path(__file__).resolve().parent.parent
+REPO_ROOT = Path(__file__).resolve().parent.parent
+DEFAULT_PRIVATE_DATA_ROOT = REPO_ROOT.with_name("agent-harness-data")
 ACTIVE_STAGES = ["clarification", "planning", "execution", "verification", "knowledge-review"]
 APP_SERVER_HOST = "127.0.0.1"
 APP_SERVER_BASE_PORT = 4210
@@ -40,8 +41,16 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Serve the local control plane GUI and mutation APIs.")
     parser.add_argument("--host", default="127.0.0.1", help="Host to bind.")
     parser.add_argument("--port", type=int, default=4173, help="Port to bind.")
-    parser.add_argument("--root", default=str(ROOT), help="Control-plane root directory.")
+    parser.add_argument("--repo-root", default=str(REPO_ROOT), help="Repository root for GUI and static assets.")
+    parser.add_argument("--data-root", default=None, help="Data root for tasks, indexes, accounts, machines, and sessions.")
+    parser.add_argument("--root", default=None, help="Deprecated alias for --data-root.")
     return parser.parse_args()
+
+
+def get_default_data_root() -> Path:
+    if DEFAULT_PRIVATE_DATA_ROOT.exists():
+        return DEFAULT_PRIVATE_DATA_ROOT
+    return REPO_ROOT
 
 
 def now_iso() -> str:
@@ -51,6 +60,10 @@ def now_iso() -> str:
 def parse_markdown_record(path: Path) -> Any:
     with RECORD_IO_LOCK:
         return raw_parse_markdown_record(path)
+
+
+def build_indexes(root: Path, *, asset_source_root: Path = REPO_ROOT) -> dict[str, Any]:
+    return raw_build_indexes(root, asset_source_root=asset_source_root)
 
 
 def current_date_stamp() -> str:
@@ -531,7 +544,7 @@ def run_app_server_client(action: str, payload: dict[str, Any]) -> dict[str, Any
         text=True,
         capture_output=True,
         check=False,
-        cwd=str(ROOT),
+        cwd=str(REPO_ROOT),
     )
     if result.returncode != 0:
         stderr = (result.stderr or result.stdout or "").strip()
@@ -1554,6 +1567,31 @@ def create_task(root: Path, payload: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def set_task_terminal_state(root: Path, payload: dict[str, Any]) -> dict[str, Any]:
+    task_id = str(payload.get("task_id") or "").strip()
+    terminal_state = str(payload.get("terminal_state") or "").strip()
+    updated_by = str(payload.get("updated_by") or "").strip() or "user"
+
+    if not task_id:
+        raise ValueError("task_id is required")
+    if terminal_state not in {"", "archived", "completed", "cancelled"}:
+        raise ValueError("invalid terminal_state")
+
+    task_path = find_task_path(root, task_id)
+    task_record = parse_markdown_record(task_path)
+    task_record.data["terminal_state"] = terminal_state
+    task_record.data["updated_at"] = now_iso()
+    write_markdown_with_frontmatter(task_path, task_record.data, task_record.body)
+    build_indexes(root)
+
+    return {
+        "ok": True,
+        "task_id": task_id,
+        "terminal_state": terminal_state,
+        "updated_by": updated_by,
+    }
+
+
 def load_runtime_records(root: Path, task_id: str) -> tuple[dict[str, Path], Any, Any, Any]:
     runtime_paths = ensure_runtime_scaffold(root, task_id)
     runtime_index = parse_markdown_record(runtime_paths["index"])
@@ -1850,7 +1888,7 @@ def start_app_server_bridge(root: Path, task_id: str, session_id: str, *, ws_url
     stdout_log_path, stderr_log_path = bridge_log_paths(root, task_id)
     process = subprocess.Popen(  # noqa: S603
         ["node", str(APP_SERVER_BRIDGE_SCRIPT), json.dumps(options, ensure_ascii=False)],
-        cwd=str(ROOT),
+        cwd=str(REPO_ROOT),
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -2746,14 +2784,23 @@ def shutdown_all_runtime_processes(root: Path) -> None:
 
 
 class ControlPlaneHandler(SimpleHTTPRequestHandler):
-    def __init__(self, *args: Any, directory: str | None = None, root: Path | None = None, **kwargs: Any) -> None:
-        self.control_root = root or ROOT
-        super().__init__(*args, directory=str(self.control_root), **kwargs)
+    def __init__(
+        self,
+        *args: Any,
+        directory: str | None = None,
+        repo_root: Path | None = None,
+        data_root: Path | None = None,
+        **kwargs: Any,
+    ) -> None:
+        self.repo_root = repo_root or REPO_ROOT
+        self.data_root = data_root or self.repo_root
+        super().__init__(*args, directory=str(directory or self.repo_root), **kwargs)
 
     def translate_path(self, path: str) -> str:
         parsed = urlparse(path)
         request_path = unquote(parsed.path)
-        dist_root = self.control_root / "gui" / "dist"
+        dist_root = self.repo_root / "gui" / "dist"
+        data_indexes_root = self.data_root / "indexes"
 
         if dist_root.exists() and request_path.startswith("/gui"):
             relative_path = request_path.removeprefix("/gui").lstrip("/")
@@ -2768,6 +2815,17 @@ class ControlPlaneHandler(SimpleHTTPRequestHandler):
                 candidate.relative_to(dist_root.resolve())
             except ValueError:
                 return str((dist_root / "index.html").resolve())
+            return str(candidate)
+
+        if request_path == "/indexes" or request_path.startswith("/indexes/"):
+            relative_path = request_path.removeprefix("/indexes").lstrip("/")
+            candidate = (data_indexes_root / relative_path).resolve() if relative_path else data_indexes_root.resolve()
+            if candidate.is_dir():
+                candidate = candidate / "overview.json"
+            try:
+                candidate.relative_to(data_indexes_root.resolve())
+            except ValueError:
+                return str((data_indexes_root / "overview.json").resolve())
             return str(candidate)
 
         return super().translate_path(path)
@@ -2792,6 +2850,9 @@ class ControlPlaneHandler(SimpleHTTPRequestHandler):
             return
         if parsed.path == "/api/tasks/advance-stage":
             self.handle_advance_task_stage()
+            return
+        if parsed.path == "/api/tasks/set-terminal-state":
+            self.handle_set_task_terminal_state()
             return
         if parsed.path == "/api/runtime/start":
             self.handle_start_runtime()
@@ -2820,7 +2881,7 @@ class ControlPlaneHandler(SimpleHTTPRequestHandler):
         try:
             params = parse_qs(query)
             task_id = (params.get("task_id") or [""])[0]
-            result = get_runtime_status(self.control_root, task_id)
+            result = get_runtime_status(self.data_root, task_id)
         except FileNotFoundError as exc:
             self.respond_json({"ok": False, "error": str(exc)}, HTTPStatus.NOT_FOUND)
             return
@@ -2836,7 +2897,7 @@ class ControlPlaneHandler(SimpleHTTPRequestHandler):
         try:
             params = parse_qs(query)
             task_id = (params.get("task_id") or [""])[0]
-            result = get_runtime_events(self.control_root, task_id)
+            result = get_runtime_events(self.data_root, task_id)
         except FileNotFoundError as exc:
             self.respond_json({"ok": False, "error": str(exc)}, HTTPStatus.NOT_FOUND)
             return
@@ -2853,7 +2914,7 @@ class ControlPlaneHandler(SimpleHTTPRequestHandler):
             length = int(self.headers.get("Content-Length", "0"))
             raw_body = self.rfile.read(length)
             payload = json.loads(raw_body.decode("utf-8"))
-            result = confirm_decision(self.control_root, payload)
+            result = confirm_decision(self.data_root, payload)
         except FileNotFoundError as exc:
             self.respond_json({"ok": False, "error": str(exc)}, HTTPStatus.NOT_FOUND)
             return
@@ -2874,7 +2935,28 @@ class ControlPlaneHandler(SimpleHTTPRequestHandler):
             length = int(self.headers.get("Content-Length", "0"))
             raw_body = self.rfile.read(length)
             payload = json.loads(raw_body.decode("utf-8"))
-            result = advance_task_stage(self.control_root, payload)
+            result = advance_task_stage(self.data_root, payload)
+        except FileNotFoundError as exc:
+            self.respond_json({"ok": False, "error": str(exc)}, HTTPStatus.NOT_FOUND)
+            return
+        except ValueError as exc:
+            self.respond_json({"ok": False, "error": str(exc)}, HTTPStatus.BAD_REQUEST)
+            return
+        except json.JSONDecodeError as exc:
+            self.respond_json({"ok": False, "error": f"Invalid JSON: {exc}"}, HTTPStatus.BAD_REQUEST)
+            return
+        except Exception as exc:  # noqa: BLE001
+            self.respond_json({"ok": False, "error": str(exc)}, HTTPStatus.INTERNAL_SERVER_ERROR)
+            return
+
+        self.respond_json(result, HTTPStatus.OK)
+
+    def handle_set_task_terminal_state(self) -> None:
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+            raw_body = self.rfile.read(length)
+            payload = json.loads(raw_body.decode("utf-8"))
+            result = set_task_terminal_state(self.data_root, payload)
         except FileNotFoundError as exc:
             self.respond_json({"ok": False, "error": str(exc)}, HTTPStatus.NOT_FOUND)
             return
@@ -2895,7 +2977,7 @@ class ControlPlaneHandler(SimpleHTTPRequestHandler):
             length = int(self.headers.get("Content-Length", "0"))
             raw_body = self.rfile.read(length)
             payload = json.loads(raw_body.decode("utf-8"))
-            result = create_task(self.control_root, payload)
+            result = create_task(self.data_root, payload)
         except FileNotFoundError as exc:
             self.respond_json({"ok": False, "error": str(exc)}, HTTPStatus.NOT_FOUND)
             return
@@ -2937,7 +3019,7 @@ class ControlPlaneHandler(SimpleHTTPRequestHandler):
             length = int(self.headers.get("Content-Length", "0"))
             raw_body = self.rfile.read(length)
             payload = json.loads(raw_body.decode("utf-8"))
-            result = callback(self.control_root, payload)
+            result = callback(self.data_root, payload)
         except FileNotFoundError as exc:
             self.respond_json({"ok": False, "error": str(exc)}, HTTPStatus.NOT_FOUND)
             return
@@ -2964,26 +3046,35 @@ class ControlPlaneHandler(SimpleHTTPRequestHandler):
 
 def main() -> None:
     args = parse_args()
-    root = Path(args.root).resolve()
-    reconcile_all_runtime_processes(root)
-    build_indexes(root)
+    repo_root = Path(args.repo_root).resolve()
+    data_root = Path(args.data_root or args.root or get_default_data_root()).resolve()
+    reconcile_all_runtime_processes(data_root)
+    build_indexes(data_root, asset_source_root=repo_root)
 
     def handler(*handler_args: Any, **handler_kwargs: Any) -> ControlPlaneHandler:
-        return ControlPlaneHandler(*handler_args, directory=str(root), root=root, **handler_kwargs)
+        return ControlPlaneHandler(
+            *handler_args,
+            directory=str(repo_root),
+            repo_root=repo_root,
+            data_root=data_root,
+            **handler_kwargs,
+        )
 
     server = ThreadingHTTPServer((args.host, args.port), handler)
     print(f"Control plane server listening on http://{args.host}:{args.port}/gui/")
+    print(f"repo_root={repo_root}")
+    print(f"data_root={data_root}")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
         pass
     finally:
-        shutdown_all_runtime_processes(root)
+        shutdown_all_runtime_processes(data_root)
         for bridge in list(APP_SERVER_BRIDGES.values()):
             bridge.shutdown()
         APP_SERVER_BRIDGES.clear()
         APP_SERVER_PROCESSES.clear()
-        build_indexes(root)
+        build_indexes(data_root, asset_source_root=repo_root)
         server.server_close()
 
 

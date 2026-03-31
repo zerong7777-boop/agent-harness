@@ -1,4 +1,5 @@
-import "./styles.css";
+import "./app-shell";
+/*
 
 type OverviewIndex = {
   generated_at?: string;
@@ -442,3 +443,4 @@ function render(): void {
 }
 
 void loadApp().then(render);
+*/
